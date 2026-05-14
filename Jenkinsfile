@@ -19,7 +19,7 @@ pipeline {
     }
 
     environment {
-        MAVEN_OPTS = '-Dmaven.test.failure.ignore=false'
+        MAVEN_OPTS = 'maven.test.failure.ignore=false'
     }
 
     stages {
