@@ -2,40 +2,46 @@ pipeline {
     agent any
 
     tools {
+        // Configure these names in Jenkins: Manage Jenkins -> Tools
         jdk 'JDK21'
         maven 'Maven'
     }
 
-    triggers {
-        pollSCM('H/5 * * * *')
+    options {
+        timestamps()
+        disableConcurrentBuilds()
+        buildDiscarder(logRotator(numToKeepStr: '10'))
+    }
+
+    parameters {
+        choice(name: 'BROWSER', choices: ['chrome'], description: 'Browser for Selenium tests')
+        booleanParam(name: 'HEADLESS', defaultValue: true, description: 'Run browser in headless mode')
+    }
+
+    environment {
+        MAVEN_OPTS = '-Dmaven.test.failure.ignore=false'
     }
 
     stages {
-
-        stage('Checkout Code') {
+        stage('Checkout') {
             steps {
                 checkout scm
+                bat 'git branch --show-current || git rev-parse --abbrev-ref HEAD'
             }
         }
 
-        stage('Verify Java and Maven') {
+        stage('Build and Test') {
             steps {
-                bat 'java -version'
                 bat 'mvn -version'
-            }
-        }
-
-        stage('Clean and Run Cucumber Tests') {
-            steps {
-                bat 'mvn clean test -Dheadless=true'
+                bat 'mvn clean test -Dbrowser=%BROWSER% -Dheadless=%HEADLESS%'
             }
         }
     }
 
     post {
         always {
-            archiveArtifacts artifacts: 'target/cucumber-reports/**', allowEmptyArchive: true
-
+            junit allowEmptyResults: true, testResults: 'target/surefire-reports/*.xml'
+            archiveArtifacts artifacts: 'target/cucumber-reports/**/*, target/surefire-reports/**/*, screenshots/**/*', allowEmptyArchive: true
             publishHTML(target: [
                 reportDir: 'target/cucumber-reports',
                 reportFiles: 'cucumber.html',
@@ -44,14 +50,6 @@ pipeline {
                 alwaysLinkToLastBuild: true,
                 allowMissing: true
             ])
-        }
-
-        success {
-            echo 'Build passed. Selenium Cucumber tests executed successfully.'
-        }
-
-        failure {
-            echo 'Build failed. Check Console Output and Cucumber HTML Report.'
         }
     }
 }
