@@ -3,8 +3,8 @@ pipeline {
 
     tools {
         // Configure these names in Jenkins: Manage Jenkins -> Tools
-        jdk 'JDK21'
-        maven 'Maven'
+        jdk 'jdk21'
+        maven 'MAven'
     }
 
     options {
@@ -19,7 +19,7 @@ pipeline {
     }
 
     environment {
-        MAVEN_OPTS = 'maven.test.failure.ignore=false'
+        MAVEN_OPTS = '-Dmaven.test.failure.ignore=false'
     }
 
     stages {
